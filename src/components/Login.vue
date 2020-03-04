@@ -37,34 +37,41 @@ export default {
   data() {
     return {
       loginForm: {
-        username: "111",
-        password: "11"
+        username: 'admin',
+        password: '123456'
       },
       loginFormRules: {
         username: [
-          { required: true, message: "请输入登陆名称", trigger: "blur" },
-          { min: 3, max: 10, message: "长度在3到10个字符", trigger: "blur" }
+          { required: true, message: '请输入登陆名称', trigger: 'blur' },
+          { min: 3, max: 10, message: '长度在3到10个字符', trigger: 'blur' }
         ],
         password: [
-          { required: true, message: "请输入登陆密码", trigger: "blur" },
-          { min: 6, max: 15, message: "长度在6到15个字符", trigger: "blur" }
+          { required: true, message: '请输入登陆密码', trigger: 'blur' },
+          { min: 6, max: 15, message: '长度在6到15个字符', trigger: 'blur' }
         ]
       }
-    };
+    }
   },
   methods: {
     // 重置按钮，重置表单数据
     resetForm() {
       // console.log(this);
-      this.$refs.loginFormRef.resetFields();
+      this.$refs.loginFormRef.resetFields()
     },
+    // 登陆按钮
     login() {
-      this.$refs.loginFormRef.validate(valid => {
-        console.log(valid);
-      });
+      this.$refs.loginFormRef.validate(async valid => {
+        if (!valid) return
+        const { data: res } = await this.$http.post('login', this.loginForm)
+        if (res.meta.status !== 200) return this.$message.error('登陆失败！')
+        this.$message.success('登陆成功')
+        window.sessionStorage.setItem('token', res.data.token)
+        this.$router.push('/home')
+        console.log(res)
+      })
     }
   }
-};
+}
 </script>
 
 <style lang="less" scoped>
