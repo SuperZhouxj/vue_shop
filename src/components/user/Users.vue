@@ -1,4 +1,4 @@
-che<template>
+<template>
   <div>
     <!--面包屑导航栏-->
     <el-breadcrumb separator-class="el-icon-arrow-right">
