@@ -32,7 +32,12 @@
           <el-table :data="manyFormData">
             <el-table-column type="expand">
               <template slot-scope="scope">
-                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable>{{item}}</el-tag>
+                <el-tag
+                  v-for="(item, i) in scope.row.attr_vals"
+                  :key="i"
+                  closable
+                  @close="closeTag(i, scope.row)"
+                >{{item}}</el-tag>
                 <!-- new tag按钮和文本框组件-->
                 <el-input
                   class="input-new-tag"
@@ -69,7 +74,32 @@
             @click="addDialogVisible = true"
           >添加属性</el-button>
           <el-table :data="onlyFormData" border stripe>
-            <el-table-column type="expand"></el-table-column>
+            <el-table-column type="expand">
+              <template slot-scope="scope">
+                <el-tag
+                  v-for="(item, i) in scope.row.attr_vals"
+                  :key="i"
+                  closable
+                  @close="closeTag(i, scope.row)"
+                >{{item}}</el-tag>
+                <!-- new tag按钮和文本框组件-->
+                <el-input
+                  class="input-new-tag"
+                  v-if="scope.row.inputVisible"
+                  v-model="scope.row.inputValue"
+                  ref="saveTagInput"
+                  size="small"
+                  @keyup.enter.native="handleInputConfirm(scope.row)"
+                  @blur="handleInputConfirm(scope.row)"
+                ></el-input>
+                <el-button
+                  v-else
+                  class="button-new-tag"
+                  size="small"
+                  @click="showInput(scope.row)"
+                >+ New Tag</el-button>
+              </template>
+            </el-table-column>
             <el-table-column type="index" label="#"></el-table-column>
             <el-table-column prop="attr_name" label="属性列表"></el-table-column>
             <el-table-column>
@@ -174,6 +204,12 @@ export default {
     },
     // 获取参数的列表数据
     async getParamsChange() {
+      if (this.selectedCateKeys.length !== 3) {
+        this.selectedCateKeys = []
+        this.manyFormData = []
+        this.onlyFormData = []
+        return
+      }
       // 选择三级分类，根据选中的分类Id和标签页名称，查询参数
       const { data: res } = await this.$http.get(
         `categories/${this.cateId}/attributes`,
@@ -272,7 +308,7 @@ export default {
         `categories/${this.cateId}/attributes/${attrid}`
       )
       if (res.meta.status !== 200) {
-        this.$message.error('删除参数失败')
+        return this.$message.error('删除参数失败')
       }
       this.getParamsChange()
       this.$message.success('删除参数成功')
@@ -285,7 +321,30 @@ export default {
         return
       }
       // 如果没有return ，则说明输入了内容，进行后续处理
-      console.log()
+      // console.log()
+      // 对象中添加文本框内容
+      row.attr_vals.push(row.inputValue.trim())
+      // console.log(row.attr_vals)
+      // 文本框置空
+      row.inputValue = ''
+      // 文本框隐藏 显示tag
+      row.inputVisible = false
+      this.saveAttrVals(row)
+    },
+    // 对attr_vals进行操作，并保存到数据库中
+    async saveAttrVals(row) {
+      const { data: res } = await this.$http.put(
+        `categories/${this.cateId}/attributes/${row.attr_id}`,
+        {
+          attr_name: row.attr_name,
+          attr_sel: row.attr_sel,
+          attr_vals: row.attr_vals.join(' ')
+        }
+      )
+      if (res.meta.status !== 200) {
+        return this.$message.error('修改标签失败')
+      }
+      this.$message.success('修改标签成功')
     },
     // 控制文本框显示
     showInput(row) {
@@ -295,6 +354,12 @@ export default {
       this.$nextTick(_ => {
         this.$refs.saveTagInput.$refs.input.focus()
       })
+    },
+    // 监听tag关闭事件
+    closeTag(i, row) {
+      // 删除指定索引的tag
+      row.attr_vals.splice(i, 1)
+      this.saveAttrVals(row)
     }
   },
   computed: {
