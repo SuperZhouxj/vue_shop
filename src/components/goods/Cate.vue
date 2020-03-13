@@ -13,6 +13,7 @@
         </el-col>
       </el-row>
       <tree-table
+        class="tree-table"
         :data="cateList"
         :columns="columns"
         border
@@ -34,9 +35,19 @@
           <el-tag type="warning" size="mini" v-else>三级</el-tag>
         </template>
         <!-- 操作-->
-        <template slot="option">
-          <el-button type="primary" icon="el-icon-edit" size="mini">编辑</el-button>
-          <el-button type="danger" icon="el-icon-delete" size="mini">删除</el-button>
+        <template slot="option" slot-scope="scope">
+          <el-button
+            type="primary"
+            icon="el-icon-edit"
+            size="mini"
+            @click="editDialog(scope.row.cat_id)"
+          >编辑</el-button>
+          <el-button
+            type="danger"
+            icon="el-icon-delete"
+            size="mini"
+            @click="deleteDialog(scope.row.cat_id)"
+          >删除</el-button>
         </template>
       </tree-table>
       <!-- 分页栏-->
@@ -50,7 +61,7 @@
         :total="total"
       ></el-pagination>
     </el-card>
-    <!-- 添加用户对话框 -->
+    <!-- 添加分类对话框 -->
     <el-dialog
       title="添加分类"
       :visible.sync="addCateDialogVisible"
@@ -61,7 +72,7 @@
         :model="addCateForm"
         :rules="addCateFormRules"
         ref="addCateFormRef"
-        label-width="70px"
+        label-width="80px"
       >
         <el-form-item label="分类名称" prop="cat_name">
           <el-input v-model="addCateForm.cat_name"></el-input>
@@ -79,6 +90,28 @@
       <span slot="footer" class="dialog-footer">
         <el-button @click="addCateDialogVisible = false">取 消</el-button>
         <el-button type="primary" @click="addCateConfirm">确 定</el-button>
+      </span>
+    </el-dialog>
+    <!-- 编辑分类对话框 -->
+    <el-dialog
+      title="编辑分类"
+      :visible.sync="editCateDialogVisible"
+      width="40%"
+      @close="editCateDialogClosed"
+    >
+      <el-form
+        :model="editCateForm"
+        :rules="editCateFormRules"
+        ref="editCateFormRef"
+        label-width="90px"
+      >
+        <el-form-item label="分类名称:" prop="cat_name">
+          <el-input v-model="editCateForm.cat_name"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editCateDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="editDialogConfirm">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -138,7 +171,9 @@ export default {
       },
       // 添加表单的验证规则对象
       addCateFormRules: {
-        cat_name: [{ required: true, message: '请输入用户名', trigger: 'blur' }]
+        cat_name: [
+          { required: true, message: '请输入分类名称', trigger: 'blur' }
+        ]
       },
       // 父级分类列表
       ParentCateList: [],
@@ -151,6 +186,14 @@ export default {
         label: 'cat_name',
         children: 'children',
         checkStrictly: true
+      },
+      // 控制编辑分类对话框显示隐藏
+      editCateDialogVisible: false,
+      editCateForm: {},
+      editCateFormRules: {
+        cat_name: [
+          { required: true, message: '请输入分类名称', trigger: 'blur' }
+        ]
       }
     }
   },
@@ -216,7 +259,10 @@ export default {
       this.$refs.addCateFormRef.validate(async valid => {
         if (!valid) return
         // 可以发起添加分类的网络请求
-        const { data: res } = await this.$http.post('categories', this.addCateForm)
+        const { data: res } = await this.$http.post(
+          'categories',
+          this.addCateForm
+        )
         console.log(res)
         if (res.meta.status !== 201) {
           return this.$message.error('添加分类失败')
@@ -226,12 +272,63 @@ export default {
         this.addCateDialogVisible = false
       })
     },
-    // 监听添加分类关闭事件
+    // 监听添加分类对话框关闭事件
     addCateDialogClosed() {
       this.$refs.addCateFormRef.resetFields()
       this.selectedKeys = []
       this.addCateForm.cat_pid = 0
       this.addCateForm.cat_level = 0
+    },
+    // 监听编辑分类对话框关闭事件
+    editCateDialogClosed() {
+      this.$refs.editCateFormRef.resetFields()
+    },
+    // 监听编辑按钮事件
+    async editDialog(catId) {
+      const { data: res } = await this.$http.get(`categories/${catId}`)
+      if (res.meta.status !== 200) {
+        return this.$message.error('获取分类失败')
+      }
+      this.$message.success('获取分类成功')
+      this.editCateForm = res.data
+      this.editCateDialogVisible = true
+    },
+    // 监听修改分类对话框确定按钮事件
+    async editDialogConfirm() {
+      const { data: res } = await this.$http.put(
+        `categories/${this.editCateForm.cat_id}`,
+        {
+          cat_name: this.editCateForm.cat_name
+        }
+      )
+      console.log(res)
+      if (res.meta.status !== 200) {
+        return this.$message.error('更新分类失败')
+      }
+      this.editCateDialogVisible = false
+      this.getCateList()
+      this.$message.success('更新分类成功')
+    },
+    // 监听删除按钮事件
+    async deleteDialog(catId) {
+      const confirmRes = await this.$confirm(
+        '此操作将永久删除该参数, 是否继续?',
+        '提示',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      ).catch(error => error)
+      if (confirmRes !== 'confirm') {
+        return this.$message.info('已取消删除操作')
+      }
+      const { data: res } = await this.$http.delete(`categories/${catId}`)
+      if (res.meta.status !== 200) {
+        return this.$message.error('删除参数失败')
+      }
+      this.getCateList()
+      this.$message.success('删除分类成功')
     }
   }
 }
@@ -240,5 +337,8 @@ export default {
 <style lang="less" scoped>
 .el-cascader {
   width: 100%;
+}
+.tree-table {
+  margin-top: 15px;
 }
 </style>

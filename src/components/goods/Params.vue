@@ -32,7 +32,7 @@
           <el-table :data="manyFormData">
             <el-table-column type="expand">
               <template slot-scope="scope">
-                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable>${{item}}</el-tag>
+                <el-tag v-for="(item, i) in scope.row.attr_vals" :key="i" closable>{{item}}</el-tag>
                 <!-- new tag按钮和文本框组件-->
                 <el-input
                   class="input-new-tag"
@@ -323,7 +323,7 @@ export default {
 .el-tag {
   margin-right: 15px;
 }
-.el-input {
+.input-new-tag {
   width: 130px;
 }
 </style>
