@@ -3,6 +3,7 @@ html,body,#app{
     height: 100%;
     width: 100%;
     margin: 0;
+    padding: 0;
     min-width: 1366px;
 }
 .el-breadcrumb{
@@ -13,4 +14,14 @@ html,body,#app{
 }
 .el-table{
     margin-top: 15px;
+}
+.el-steps {
+    margin-top: 15px;
+}
+.el-step__title{
+    font-size: 13px;
+}
+/* 设置富文本组件编辑区域最小高度*/
+.ql-editor{
+    min-height: 300px;
 }
