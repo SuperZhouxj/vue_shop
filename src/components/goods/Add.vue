@@ -94,6 +94,7 @@
 </template>
 
 <script>
+import _ from 'lodash'
 export default {
   data() {
     return {
@@ -106,7 +107,8 @@ export default {
         goods_number: 0,
         goods_cat: [],
         pics: [],
-        goods_introduce: ''
+        goods_introduce: '',
+        attrs: []
       },
       addFormRules: {
         goods_name: [
@@ -223,7 +225,42 @@ export default {
     },
     // 监听 添加商品按钮事件
     addGoodsBtn() {
-      console.log(this.addForm)
+      // console.log(this.addForm)
+      this.$refs.addFormRef.validate(async valid => {
+        if (!valid) {
+          this.$message.error('请填写必要的表单项')
+        }
+        // 执行添加逻辑
+        // 使用lodash插件就行深拷贝，复制出一个form，将goods_cat转换成字符串对象，
+        // 提交服务器，直接对addForm操作会报错，因为级联选择器需要的数组
+        const form = _.cloneDeep(this.addForm)
+        form.goods_cat = form.goods_cat.join(',')
+        // 处理动态参数
+        this.manyTableData.forEach(item => {
+          const attrInfo = {
+            attr_id: item.attr_id,
+            attr_value: item.attr_vals.join(' ')
+          }
+          this.addForm.attrs.push(attrInfo)
+        })
+
+        // 处理静态属性
+        this.onlyTableData.forEach(item => {
+          const attrInfo1 = {
+            attr_id: item.attr_id,
+            attr_value: item.attr_vals
+          }
+          this.addForm.attrs.push(attrInfo1)
+        })
+        form.attrs = this.addForm.attrs
+        // console.log(form)
+        const { data: res } = await this.$http.post('goods', form)
+        if (res.meta.status !== 201) {
+          return this.$message.error('添加商品操作失败')
+        }
+        this.$message.success('添加商品操作成功')
+        this.$router.push('/goods')
+      })
     }
   },
   computed: {
